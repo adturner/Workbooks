@@ -318,8 +318,6 @@
       "name": "query - 13"
     }
   ],
-  "fallbackResourceIds": [
-    "/subscriptions/008a0e8b-59e3-441e-9191-55e92a280073/resourcegroups/defaultresourcegroup-eus/providers/microsoft.operationalinsights/workspaces/defaultworkspace-008a0e8b-59e3-441e-9191-55e92a280073-eus"
-  ],
+  "fallbackResourceIds": [],
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
 }
