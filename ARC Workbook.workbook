@@ -1,0 +1,325 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "CPU Average - Arc Machines - Last Reading"
+      },
+      "name": "text - 1"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where TimeGenerated > ago(30d)\r\n| where Namespace == 'Processor' and Name == 'UtilizationPercentage' and _ResourceId has 'microsoft.hybridcompute'\r\n| extend Tags=todynamic(Tags)\r\n| extend Cores=tostring(Tags['vm.azm.ms/totalCpus'])\r\n| summarize LastLog=arg_max(TimeGenerated, Val) by Computer, _ResourceId, Cores\r\n| extend Utilization=Val\r\n| project Computer, Cores, Utilization, Resource=_ResourceId, LastLog\r\n| sort by Utilization desc ",
+        "size": 4,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Utilization",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 100,
+                "palette": "greenRed"
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - 0"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Disk Utilization - Arc Machines - Last Reading"
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "\r\nInsightsMetrics    \r\n| where TimeGenerated > ago(30d)    \r\n| where Origin == 'vm.azm.ms' and (Namespace == 'LogicalDisk' and Name == 'FreeSpaceMB') and _ResourceId has 'microsoft.hybridcompute'\r\n| extend ComputerId = iff(isempty(_ResourceId), Computer, _ResourceId)    \r\n| extend Tags = todynamic(Tags)    \r\n| extend Total = todouble(Tags['vm.azm.ms/diskSizeMB'])   \r\n| extend Drive = tostring(Tags['vm.azm.ms/mountId'])\r\n| summarize LastLog=arg_max(TimeGenerated, Val) by Computer,ComputerId, Name, Namespace, Drive, Total    \r\n| extend Val = round((100.0 - (Val * 100.0)/Total), 2)    \r\n| project Computer, TotalSizeGB=round(Total/1024, 0), PercentageUsed=Val, Drive, ComputerId, LastLog\r\n| sort by PercentageUsed desc",
+        "size": 4,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "PercentageUsed",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 100,
+                "palette": "greenRed"
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - 2"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Memory Utilization - Arc Machines - Last Reading"
+      },
+      "name": "text - 5"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics    \r\n| where TimeGenerated > ago(30d)    \r\n| where Origin == 'vm.azm.ms' and (Namespace == 'Memory' and Name == 'AvailableMB') and _ResourceId has 'microsoft.hybridcompute'\r\n| extend Tags = todynamic(Tags)\r\n| extend Total = todouble(Tags['vm.azm.ms/memorySizeMB'])\r\n| summarize LastLog=arg_max(TimeGenerated, Val) by Computer, Total, _ResourceId\r\n| extend UsedMemoryPercent=round((100.0 - (Val*100.0)/Total), 2)\r\n| extend TotalMemoryGB = round(Total/1024.0, 0)\r\n| project Computer, TotalMemoryGB, UsedMemoryPercent, Resource=_ResourceId, LastLog\r\n| order by UsedMemoryPercent desc",
+        "size": 4,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "UsedMemoryPercent",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 100,
+                "palette": "greenRed"
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - 4"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Heartbeat - Arc Machines - Last Check-In"
+      },
+      "name": "text - 6"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where Namespace=='Computer' and Name=='Heartbeat' and _ResourceId has \"microsoft.hybridcompute\"\r\n| summarize LastHeartbeat=max(TimeGenerated) by Computer, _ResourceId\r\n| where LastHeartbeat <= now() and isempty(_ResourceId) == false\r\n| extend MinutesSince=datetime_diff('minute', now(), LastHeartbeat)\r\n| project Computer, LastHeartbeat, MinutesSince, _ResourceId",
+        "size": 4,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "LastHeartbeat",
+              "formatter": 6,
+              "dateFormat": {
+                "showUtcTime": null,
+                "formatName": "shortDateTimePattern"
+              }
+            },
+            {
+              "columnMatch": "MinutesSince",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 30,
+                "palette": "greenRed"
+              }
+            }
+          ],
+          "labelSettings": [
+            {
+              "columnId": "MinutesSince",
+              "label": "Minutes Since Last Heartbeat"
+            }
+          ]
+        }
+      },
+      "name": "query - 7"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Heartbeat - Arc Machines - Down Machines"
+      },
+      "name": "text - 8"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where Namespace=='Computer' and Name=='Heartbeat' and _ResourceId has \"microsoft.hybridcompute\"\r\n| summarize LastHeartbeat=max(TimeGenerated) by Computer, _ResourceId\r\n| where LastHeartbeat <= ago(30m) and isempty(_ResourceId) == false\r\n| project Computer, LastHeartbeat, _ResourceId",
+        "size": 4,
+        "timeContext": {
+          "durationMs": 2592000000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Computer",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "redBright",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "LastHeartbeat",
+              "formatter": 6,
+              "dateFormat": {
+                "showUtcTime": null,
+                "formatName": "fullDateTimePattern"
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - 9"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Patch Assessment - Arc Machines"
+      },
+      "name": "text - 10"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "patchassessmentresources\r\n| where type !has \"softwarepatches\" and type has 'microsoft.hybridcompute'\r\n| extend prop = parse_json(properties)\r\n| extend lastTime = properties.lastModifiedDateTime\r\n| extend updateRollupCount = prop.availablePatchCountByClassification.updateRollup, featurePackCount = prop.availablePatchCountByClassification.featurePack, servicePackCount = prop.availablePatchCountByClassification.servicePack, definitionCount = prop.availablePatchCountByClassification.definition, securityCount = prop.availablePatchCountByClassification.security, criticalCount = prop.availablePatchCountByClassification.critical, updatesCount = prop.availablePatchCountByClassification.updates, toolsCount = prop.availablePatchCountByClassification.tools, otherCount = prop.availablePatchCountByClassification.other, OS = prop.osType\r\n| extend resourceId = replace(@'\\/patchAssessmentResults\\/.*', '', id)\r\n| project lastTime, resourceId, OS, updateRollupCount, featurePackCount, servicePackCount, definitionCount, securityCount, criticalCount, updatesCount, toolsCount, otherCount",
+        "size": 4,
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "lastTime",
+              "formatter": 6,
+              "dateFormat": {
+                "showUtcTime": null,
+                "formatName": "shortDateTimePattern"
+              }
+            },
+            {
+              "columnMatch": "resourceId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "subTarget": "updateManagement",
+                "showIcon": true
+              }
+            },
+            {
+              "columnMatch": "linkToUpdate",
+              "formatter": 7,
+              "formatOptions": {
+                "linkColumn": "linkToUpdate",
+                "linkTarget": "Resource",
+                "linkLabel": "Go To Resource"
+              }
+            }
+          ],
+          "labelSettings": [
+            {
+              "columnId": "lastTime",
+              "label": "Last Assessment Date"
+            }
+          ]
+        }
+      },
+      "name": "query - 11"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "Arc Machines - Update Assessments Configured?"
+      },
+      "name": "text - 12"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type in ('microsoft.hybridcompute/machines')\r\n| extend assessMode = iff(isnull(properties.osProfile.windowsConfiguration.patchSettings.assessmentMode), properties.osProfile.linuxConfiguration.patchSettings.assessmentMode,  properties.osProfile.windowsConfiguration.patchSettings.assessmentMode)\r\n| extend periodicAssessment = iff(isnotnull(assessMode) and assessMode =~ \"AutomaticByPlatform\", \"Yes\", \"No\")\r\n| project id, assessMode, periodicAssessment",
+        "size": 4,
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "id",
+              "formatter": 13,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "subTarget": "updateManagement",
+                "showIcon": true
+              }
+            },
+            {
+              "columnMatch": "periodicAssessment",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "No",
+                    "representation": "redBright",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "labelSettings": [
+            {
+              "columnId": "id",
+              "label": "Resource"
+            },
+            {
+              "columnId": "assessMode",
+              "label": "Assessment Mode"
+            },
+            {
+              "columnId": "periodicAssessment",
+              "label": "Assessment Configured"
+            }
+          ]
+        }
+      },
+      "name": "query - 13"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/008a0e8b-59e3-441e-9191-55e92a280073/resourcegroups/defaultresourcegroup-eus/providers/microsoft.operationalinsights/workspaces/defaultworkspace-008a0e8b-59e3-441e-9191-55e92a280073-eus"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
